@@ -22,6 +22,8 @@ int main()
         {
             fout.open("txhash.csv", std::ios::app);
             // std::cout << "address : " << address[i] << std::endl;
+            // curl -X POST http://209.126.86.103:19092/json_rpc -d '{"jsonrpc":"2.0","id":"0","method":"transfer","params":{"destinations":[{"amount":10000000000,"address":"9vWA8m33BzXi1mUj5a8eWr9AaWCas4oLKEsn8y3ZmjLXU3CG4K4caRg1uKwARj9AVtcMjRALMYdfTPM6J2JTYKpM9Jxj5rz"}],"account_index":0,"subaddr_indices":[0],"priority":1,"ring_size":7,"get_tx_key": true}}' -H 'Content-Type: application/json'
+
             json transferBody = {
                 {"jsonrpc", "2.0"},
                 {"id", "0"},
@@ -30,7 +32,7 @@ int main()
 
             while (true)
             {
-                cpr::Response res = cpr::Post(cpr::Url{"http://127.0.0.1:19092/json_rpc"},
+                cpr::Response res = cpr::Post(cpr::Url{"http://209.126.86.103:19092/json_rpc"},
                                               cpr::Body{transferBody.dump()},
                                               cpr::Header{{"Content-Type", "application/json"}});
 
