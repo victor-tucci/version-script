@@ -125,7 +125,7 @@ int main()
         {"method", "get_master_nodes"},
         {"params", {}}};
 
-    cpr::Response res = cpr::Post(cpr::Url{"http://127.0.0.1:19091/json_rpc"},
+    cpr::Response res = cpr::Post(cpr::Url{"http://explorer.beldex.io:19091/json_rpc"},
                                   cpr::Body{transferBody.dump()},
                                   cpr::Header{{"Content-Type", "application/json"}});
 
