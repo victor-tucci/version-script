@@ -8,5 +8,6 @@ cd version-script
 mkdir build
 cd build
 cmake ..
+make -j$(nproc)
 ./bin/versioncheck
 ```
