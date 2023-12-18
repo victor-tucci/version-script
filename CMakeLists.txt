@@ -31,13 +31,10 @@ add_library(cpr::cpr ALIAS cpr)
 
 add_subdirectory(external/nlhomann)
 
-add_executable(transfer main.cpp)
-add_executable(transactions transactions.cpp)
+add_executable(versioncheck main.cpp)
 
-target_include_directories(transfer PUBLIC external/nlhomann/include)
-target_link_libraries(transfer PUBLIC cpr::cpr nlohmann_json)
+target_include_directories(versioncheck PUBLIC external/nlhomann/include)
+target_link_libraries(versioncheck PUBLIC cpr::cpr nlohmann_json)
 
-target_include_directories(transactions PUBLIC external/nlhomann/include)
-target_link_libraries(transactions PUBLIC cpr::cpr nlohmann_json)
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/bin)
