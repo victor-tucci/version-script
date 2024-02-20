@@ -60,26 +60,15 @@ void checkStorageVersion(json storageV, json storageAV){
     storage2_3_0 ++;
 }
 
-int main()
+void masterNodeversionMonitor(json resultTx)
 {
     std::ofstream fout;
     fout.open("olddaemns.csv"); //     fout.open("olddaemns.csv", std::ios::app);
 
     std::ofstream conList;
     conList.open("contributorList.csv");
-
     json decomissionNodes;
-    json transferBody = {
-        {"jsonrpc", "2.0"},
-        {"id", "0"},
-        {"method", "get_master_nodes"},
-        {"params", {}}};
 
-    cpr::Response res = cpr::Post(cpr::Url{"http://explorer.beldex.io:19091/json_rpc"},
-                                  cpr::Body{transferBody.dump()},
-                                  cpr::Header{{"Content-Type", "application/json"}});
-
-    json resultTx = json::parse(res.text);
     std::cout <<"Total master-nodes : "  << resultTx["result"]["master_node_states"].size() << std::endl;
     for(auto master_node_data : resultTx["result"]["master_node_states"]){
         checkBelnetVersion(master_node_data["belnet_version"],belnetVersion);
@@ -106,5 +95,51 @@ int main()
         check+=it->second;
     }
     assert(oldContributors.size() == check);
+    conList.close();
+    fout.close();
+}
+
+void portHandler(json resultTx){
+    // std::cout <<"Total master-nodes : "  << resultTx["result"]["master_node_states"][0] << std::endl;
+    std::map <int,int> cumPortList;
+
+    std::ofstream portList;
+    portList.open("portList.csv"); //     fout.open("portList.csv", std::ios::app);
+
+    std::ofstream listPort;
+    listPort.open("cumPortList.csv"); //     fout.open("portList.csv", std::ios::app);
+    for(auto master_node_data : resultTx["result"]["master_node_states"]){
+        portList << master_node_data["master_node_pubkey"] << "," <<  master_node_data["public_ip"] << "," <<  master_node_data["storage_port"] << "," << master_node_data["storage_lmq_port"] << std::endl;
+        ++cumPortList[master_node_data["storage_port"]];
+    }
+
+    int check =0;
+    for(auto it=cumPortList.begin(); it != cumPortList.end(); it++)
+    {
+        listPort << it->first << "," << it->second << std::endl;
+        check+=it->second;
+    }
+    assert(resultTx["result"]["master_node_states"].size() == check);
+    portList.close();
+    listPort.close();
+}
+
+int main()
+{
+    json transferBody = {
+        {"jsonrpc", "2.0"},
+        {"id", "0"},
+        {"method", "get_master_nodes"},
+        // {"params", {{"fields",{{"master_node_pubkey",true},{"public_ip",true},{"storage_port",true},{"storage_lmq_port",true}}}}}};
+        {"params", {}}};
+
+    // std::cout << "json formot : " << transferBody.dump() << std::endl;
+    cpr::Response res = cpr::Post(cpr::Url{"http://explorer.beldex.io:19091/json_rpc"},
+                                  cpr::Body{transferBody.dump()},
+                                  cpr::Header{{"Content-Type", "application/json"}});
+
+    json resultTx = json::parse(res.text);
+    masterNodeversionMonitor(resultTx);
+    // portHandler(resultTx);
     return 0;
 }
