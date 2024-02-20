@@ -124,6 +124,47 @@ void portHandler(json resultTx){
     listPort.close();
 }
 
+void oxenportfetch(){
+        json transferBody = {
+        {"jsonrpc", "2.0"},
+        {"id", "0"},
+        {"method", "get_service_nodes"},
+        // {"params", {{"fields",{{"master_node_pubkey",true},{"public_ip",true},{"storage_port",true},{"storage_lmq_port",true}}}}}};
+        {"params", {}}};
+
+    // std::cout << "json formot : " << transferBody.dump() << std::endl;
+    cpr::Response res = cpr::Post(cpr::Url{"http://public-na.optf.ngo:22023/json_rpc"},
+                                  cpr::Body{transferBody.dump()},
+                                  cpr::Header{{"Content-Type", "application/json"}});
+
+    json resultTx = json::parse(res.text);
+
+    std::map <int,int> cumPortList;
+
+    std::ofstream portList;
+    portList.open("oxenPortList.csv"); //     fout.open("portList.csv", std::ios::app);
+
+    std::ofstream listPort;
+    listPort.open("oxenCumPortList.csv"); //     fout.open("portList.csv", std::ios::app);
+
+    std::cout <<"Total service-nodes : "  << resultTx["result"]["service_node_states"].size() << std::endl;
+
+    for(auto service_node_data : resultTx["result"]["service_node_states"]){
+        portList << service_node_data["service_node_pubkey"] << "," <<  service_node_data["public_ip"] << "," <<  service_node_data["storage_port"] << "," << service_node_data["storage_lmq_port"] << std::endl;
+        ++cumPortList[service_node_data["storage_port"]];
+    }
+
+    int check =0;
+    for(auto it=cumPortList.begin(); it != cumPortList.end(); it++)
+    {
+        listPort << it->first << "," << it->second << std::endl;
+        check+=it->second;
+    }
+    assert(resultTx["result"]["service_node_states"].size() == check);
+    portList.close();
+    listPort.close();
+}
+
 int main()
 {
     json transferBody = {
@@ -140,6 +181,7 @@ int main()
 
     json resultTx = json::parse(res.text);
     masterNodeversionMonitor(resultTx);
-    // portHandler(resultTx);
+    portHandler(resultTx);
+    oxenportfetch();
     return 0;
 }
