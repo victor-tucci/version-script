@@ -8,56 +8,75 @@
 using json = nlohmann::json;
 using namespace std::chrono;
 
-json belnetVersion = {0,9,7};
-json storageVersion = {2,3,0};
-json daemonVersion = {5,0,0};
+json belnetVersion = {0, 9, 7};
+json storageVersion = {2, 3, 0};
+json daemonVersion = {5, 0, 2};
 
 int belnet0_9_7 = 0;
-int daemon5_0_0 = 0;
+int daemon5_0_2 = 0;
 int storage2_3_0 = 0;
 
-std::map <std::string,int> contributorList;
-std::vector <std::string> oldContributors;
+int daemonNewDecom = 0;
+int daemonOldDecom = 0;
+std::map<std::string, int> contributorList;
+std::vector<std::string> oldContributors;
 
-void checkBelnetVersion(json belnetV, json belnetAV){
-    for (int i =0;i<3;i++)
+void checkBelnetVersion(json belnetV, json belnetAV)
+{
+    for (int i = 0; i < 3; i++)
     {
-        if(belnetV[i] == belnetAV[i]){
+        if (belnetV[i] == belnetAV[i])
+        {
             continue;
         }
-        else{
+        else
+        {
             return;
         }
     }
-    belnet0_9_7 ++;
+    belnet0_9_7++;
 }
 
-void checkDaemonVersion(json mnData,json daemonV, json daemonAV,std::ofstream &_fout){
-    for (int i =0;i<3;i++)
+void checkDaemonVersion(json mnData, json daemonV, json daemonAV, std::ofstream &_fout)
+{
+    for (int i = 0; i < 3; i++)
     {
-        if(daemonV[i] == daemonAV[i]){
+        if (daemonV[i] == daemonAV[i])
+        {
             continue;
         }
-        else{
-            _fout << mnData["public_ip"] <<"," << mnData["master_node_pubkey"] <<"," << mnData["operator_address"] << std::endl;
+        else
+        {
+            _fout << mnData["public_ip"] << "," << mnData["master_node_pubkey"] << "," << mnData["operator_address"] << std::endl;
             oldContributors.push_back(mnData["operator_address"]);
             ++contributorList[mnData["operator_address"]];
+            if (!mnData["active"])
+            {
+                daemonOldDecom++;
+            }
             return;
         }
     }
-    daemon5_0_0 ++;
-}
-void checkStorageVersion(json storageV, json storageAV){
-    for (int i =0;i<3;i++)
+    daemon5_0_2++;
+    if (!mnData["active"])
     {
-        if(storageV[i] == storageAV[i]){
+        daemonNewDecom++;
+    }
+}
+void checkStorageVersion(json storageV, json storageAV)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        if (storageV[i] == storageAV[i])
+        {
             continue;
         }
-        else{
+        else
+        {
             return;
         }
     }
-    storage2_3_0 ++;
+    storage2_3_0++;
 }
 
 void masterNodeversionMonitor(json resultTx)
@@ -67,65 +86,78 @@ void masterNodeversionMonitor(json resultTx)
 
     std::ofstream conList;
     conList.open("contributorList.csv");
+
+    std::ofstream decomList;
+    decomList.open("decommissionList.csv");
     json decomissionNodes;
 
-    std::cout <<"Total master-nodes : "  << resultTx["result"]["master_node_states"].size() << std::endl;
-    for(auto master_node_data : resultTx["result"]["master_node_states"]){
-        checkBelnetVersion(master_node_data["belnet_version"],belnetVersion);
-        checkDaemonVersion(master_node_data,master_node_data["master_node_version"],daemonVersion,fout);
-        checkStorageVersion(master_node_data["storage_server_version"],storageVersion);
-        if(!master_node_data["active"])
+    std::cout << "Total master-nodes : " << resultTx["result"]["master_node_states"].size() << std::endl;
+    for (auto master_node_data : resultTx["result"]["master_node_states"])
+    {
+        checkBelnetVersion(master_node_data["belnet_version"], belnetVersion);
+        checkDaemonVersion(master_node_data, master_node_data["master_node_version"], daemonVersion, fout);
+        checkStorageVersion(master_node_data["storage_server_version"], storageVersion);
+        if (!master_node_data["active"])
         {
             decomissionNodes.push_back(master_node_data);
         }
     }
-    std::cout << "daemon5_0_0  : " << daemon5_0_0 << std::endl;
-    std::cout << "storage2_3_0 : " << storage2_3_0 << std::endl;
-    std::cout << "belnet0_9_7  : " << belnet0_9_7 << std::endl;
+    std::cout << "daemon(5.0.2)  : " << daemon5_0_2 << std::endl;
+    std::cout << "daemonNewDecom : " << daemonNewDecom << std::endl;
+    std::cout << "daemonOldDecom : " << daemonOldDecom << std::endl;
     std::cout << "decomissionNodes.size() : " << decomissionNodes.size() << std::endl;
-    for(auto address : decomissionNodes)
-        std::cout << "decomissionNodes address : " << address["operator_address"] << " ,IP : " << address["public_ip"] <<" and mn-key : " << address["pubkey_ed25519"]<< std::endl;
+    std::cout << "oldContributors.size() : " << oldContributors.size() << std::endl;
 
-    assert((oldContributors.size() + daemon5_0_0) == resultTx["result"]["master_node_states"].size());
+    for (auto address : decomissionNodes)
+    {
+        if (address["operator_address"] == "bxbz3Ynqzu9WYHXBnTVL7bP1UhLCduRmH9vRH32tqcRTSksbQDjqEoweZDQWsiNKL8QHBtGzhPK3fiayLWAReAjD1rrBuinCh")
+            std::cout << "decomissionNodes address : " << address["operator_address"] << " ,IP : " << address["public_ip"] << " and mn-key : " << address["pubkey_ed25519"] << std::endl;
+        decomList << address["operator_address"] << "," << address["public_ip"] << "," << address["pubkey_ed25519"] << std::endl;
+    }
+    assert((oldContributors.size() + daemon5_0_2) == resultTx["result"]["master_node_states"].size());
 
-    int check =0;
-    for(auto it=contributorList.begin(); it != contributorList.end(); it++)
+    int check = 0;
+    for (auto it = contributorList.begin(); it != contributorList.end(); it++)
     {
         conList << it->first << "," << it->second << std::endl;
-        check+=it->second;
+        check += it->second;
     }
     assert(oldContributors.size() == check);
     conList.close();
     fout.close();
+    decomList.close();
 }
 
-void portHandler(json resultTx){
+void portHandler(json resultTx)
+{
     // std::cout <<"Total master-nodes : "  << resultTx["result"]["master_node_states"][0] << std::endl;
-    std::map <int,int> cumPortList;
+    std::map<int, int> cumPortList;
 
     std::ofstream portList;
     portList.open("portList.csv"); //     fout.open("portList.csv", std::ios::app);
 
     std::ofstream listPort;
     listPort.open("cumPortList.csv"); //     fout.open("portList.csv", std::ios::app);
-    for(auto master_node_data : resultTx["result"]["master_node_states"]){
-        portList << master_node_data["master_node_pubkey"] << "," <<  master_node_data["public_ip"] << "," <<  master_node_data["storage_port"] << "," << master_node_data["storage_lmq_port"] << std::endl;
+    for (auto master_node_data : resultTx["result"]["master_node_states"])
+    {
+        portList << master_node_data["master_node_pubkey"] << "," << master_node_data["public_ip"] << "," << master_node_data["storage_port"] << "," << master_node_data["storage_lmq_port"] << std::endl;
         ++cumPortList[master_node_data["storage_port"]];
     }
 
-    int check =0;
-    for(auto it=cumPortList.begin(); it != cumPortList.end(); it++)
+    int check = 0;
+    for (auto it = cumPortList.begin(); it != cumPortList.end(); it++)
     {
         listPort << it->first << "," << it->second << std::endl;
-        check+=it->second;
+        check += it->second;
     }
     assert(resultTx["result"]["master_node_states"].size() == check);
     portList.close();
     listPort.close();
 }
 
-void oxenportfetch(){
-        json transferBody = {
+void oxenportfetch()
+{
+    json transferBody = {
         {"jsonrpc", "2.0"},
         {"id", "0"},
         {"method", "get_service_nodes"},
@@ -139,7 +171,7 @@ void oxenportfetch(){
 
     json resultTx = json::parse(res.text);
 
-    std::map <int,int> cumPortList;
+    std::map<int, int> cumPortList;
 
     std::ofstream portList;
     portList.open("oxenPortList.csv"); //     fout.open("portList.csv", std::ios::app);
@@ -147,24 +179,57 @@ void oxenportfetch(){
     std::ofstream listPort;
     listPort.open("oxenCumPortList.csv"); //     fout.open("portList.csv", std::ios::app);
 
-    std::cout <<"Total service-nodes : "  << resultTx["result"]["service_node_states"].size() << std::endl;
+    std::cout << "Total service-nodes : " << resultTx["result"]["service_node_states"].size() << std::endl;
 
-    for(auto service_node_data : resultTx["result"]["service_node_states"]){
-        portList << service_node_data["service_node_pubkey"] << "," <<  service_node_data["public_ip"] << "," <<  service_node_data["storage_port"] << "," << service_node_data["storage_lmq_port"] << std::endl;
+    for (auto service_node_data : resultTx["result"]["service_node_states"])
+    {
+        portList << service_node_data["service_node_pubkey"] << "," << service_node_data["public_ip"] << "," << service_node_data["storage_port"] << "," << service_node_data["storage_lmq_port"] << std::endl;
         ++cumPortList[service_node_data["storage_port"]];
     }
 
-    int check =0;
-    for(auto it=cumPortList.begin(); it != cumPortList.end(); it++)
+    int check = 0;
+    for (auto it = cumPortList.begin(); it != cumPortList.end(); it++)
     {
         listPort << it->first << "," << it->second << std::endl;
-        check+=it->second;
+        check += it->second;
     }
     assert(resultTx["result"]["service_node_states"].size() == check);
     portList.close();
     listPort.close();
 }
 
+void ipToPubkey(json _resultTx)
+{
+    json mnData;
+    std::ifstream inputfile("ips.csv");
+
+    if(!inputfile.is_open()){
+        std::cerr << "unable to open the input file" << std::endl;
+        return;
+    }
+    // std::vector<std::string> ips = {"13.49.83.18","13.52.233.234","15.152.120.110"};
+    std::vector<std::string> ips;
+    std::string line;
+
+    while (std::getline(inputfile, line)){
+        std::stringstream ss(line);
+        std::string token;
+
+        while (std::getline(ss, token, ',')) {
+            ips.push_back(token);
+            std::cout << token << std::endl;
+        }
+    }
+
+    for (auto master_node_data : _resultTx["result"]["master_node_states"])
+    {
+        auto it = std::find(ips.begin(),ips.end(),master_node_data["public_ip"]);
+        if (it!= ips.end()){
+            mnData.push_back(master_node_data);
+        }
+    }
+    // std::cout << mnData << std::endl;
+}
 int main()
 {
     json transferBody = {
@@ -175,13 +240,15 @@ int main()
         {"params", {}}};
 
     // std::cout << "json formot : " << transferBody.dump() << std::endl;
-    cpr::Response res = cpr::Post(cpr::Url{"http://explorer.beldex.io:19091/json_rpc"},
+    cpr::Response res = cpr::Post(cpr::Url{"http://publicnode5.rpcnode.stream:29095/json_rpc"},
                                   cpr::Body{transferBody.dump()},
                                   cpr::Header{{"Content-Type", "application/json"}});
 
     json resultTx = json::parse(res.text);
+    std::cout << "data received" << std::endl;
     masterNodeversionMonitor(resultTx);
     portHandler(resultTx);
-    oxenportfetch();
+    // oxenportfetch();
+    ipToPubkey(resultTx);
     return 0;
 }
