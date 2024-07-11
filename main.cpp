@@ -18,7 +18,7 @@ int storage2_3_0 = 0;
 
 int daemonNewDecom = 0;
 int daemonOldDecom = 0;
-std::map<std::string, int> contributorList;
+std::map<std::string, int> oldContributorList;
 std::vector<std::string> oldContributors;
 
 void checkBelnetVersion(json belnetV, json belnetAV)
@@ -49,7 +49,7 @@ void checkDaemonVersion(json mnData, json daemonV, json daemonAV, std::ofstream 
         {
             _fout << mnData["public_ip"] << "," << mnData["master_node_pubkey"] << "," << mnData["operator_address"] << std::endl;
             oldContributors.push_back(mnData["operator_address"]);
-            ++contributorList[mnData["operator_address"]];
+            ++oldContributorList[mnData["operator_address"]];
             if (!mnData["active"])
             {
                 daemonOldDecom++;
@@ -79,16 +79,24 @@ void checkStorageVersion(json storageV, json storageAV)
     storage2_3_0++;
 }
 
+//checking the masternode old versions also the check the decommission lists
 void masterNodeversionMonitor(json resultTx)
 {
+    // This is for not the old versions list of address and their nodes
     std::ofstream fout;
+    std::ofstream oldConList;
     fout.open("olddaemns.csv"); //     fout.open("olddaemns.csv", std::ios::app);
+    oldConList.open("oldContributorList.csv");
 
-    std::ofstream conList;
-    conList.open("contributorList.csv");
-
+    // This file for the decommission list of all the master nodes
     std::ofstream decomList;
     decomList.open("decommissionList.csv");
+
+    // This file for the decommission list based on address
+    std::ofstream decomListCum;
+    decomListCum.open("decommissionListCumulative.csv");
+    std::map<std::string, int> decomListCumMap;
+
     json decomissionNodes;
 
     std::cout << "Total master-nodes : " << resultTx["result"]["master_node_states"].size() << std::endl;
@@ -102,32 +110,46 @@ void masterNodeversionMonitor(json resultTx)
             decomissionNodes.push_back(master_node_data);
         }
     }
+
     std::cout << "daemon(5.0.2)  : " << daemon5_0_2 << std::endl;
-    std::cout << "daemonNewDecom : " << daemonNewDecom << std::endl;
-    std::cout << "daemonOldDecom : " << daemonOldDecom << std::endl;
+    std::cout << "daemon(< 5.0.2): " << oldContributors.size() << std::endl << std::endl;
+    
     std::cout << "decomissionNodes.size() : " << decomissionNodes.size() << std::endl;
-    std::cout << "oldContributors.size() : " << oldContributors.size() << std::endl;
+    std::cout << "daemonNewDecom    : " << daemonNewDecom << std::endl;
+    std::cout << "daemonOldDecom    : " << daemonOldDecom << std::endl << std::endl;
 
     for (auto address : decomissionNodes)
     {
         if (address["operator_address"] == "bxbz3Ynqzu9WYHXBnTVL7bP1UhLCduRmH9vRH32tqcRTSksbQDjqEoweZDQWsiNKL8QHBtGzhPK3fiayLWAReAjD1rrBuinCh")
-            std::cout << "decomissionNodes address : " << address["operator_address"] << " ,IP : " << address["public_ip"] << " and mn-key : " << address["pubkey_ed25519"] << std::endl;
+            std::cout << "Our DecomissionNodes address : " << address["operator_address"] << " ,IP : " << address["public_ip"] << " and mn-key : " << address["pubkey_ed25519"] << std::endl;
         decomList << address["operator_address"] << "," << address["public_ip"] << "," << address["pubkey_ed25519"] << std::endl;
+        ++decomListCumMap[address["operator_address"]];
     }
     assert((oldContributors.size() + daemon5_0_2) == resultTx["result"]["master_node_states"].size());
 
-    int check = 0;
-    for (auto it = contributorList.begin(); it != contributorList.end(); it++)
+    int checkdecom =0;
+    for (auto it = decomListCumMap.begin(); it!= decomListCumMap.end(); it++)
     {
-        conList << it->first << "," << it->second << std::endl;
+        decomListCum << it->first << "," << it->second << std::endl;
+        checkdecom += it->second;
+    }
+
+    assert(checkdecom == decomissionNodes.size());
+
+    int check = 0;
+    for (auto it = oldContributorList.begin(); it != oldContributorList.end(); it++)
+    {
+        oldConList << it->first << "," << it->second << std::endl;
         check += it->second;
     }
     assert(oldContributors.size() == check);
-    conList.close();
+    decomListCum.close();
+    oldConList.close();
     fout.close();
     decomList.close();
 }
 
+//Add the storage server ports into the files
 void portHandler(json resultTx)
 {
     // std::cout <<"Total master-nodes : "  << resultTx["result"]["master_node_states"][0] << std::endl;
@@ -198,6 +220,7 @@ void oxenportfetch()
     listPort.close();
 }
 
+// fetch the pubkeys from the ips which is listed in the ips.csv file
 void ipToPubkey(json _resultTx)
 {
     json mnData;
@@ -230,6 +253,7 @@ void ipToPubkey(json _resultTx)
     }
     // std::cout << mnData << std::endl;
 }
+
 int main()
 {
     json transferBody = {
@@ -245,10 +269,10 @@ int main()
                                   cpr::Header{{"Content-Type", "application/json"}});
 
     json resultTx = json::parse(res.text);
-    std::cout << "data received" << std::endl;
+    std::cout << "-------Data Received----------" << std::endl;
     masterNodeversionMonitor(resultTx);
     portHandler(resultTx);
-    // oxenportfetch();
+    oxenportfetch();
     ipToPubkey(resultTx);
     return 0;
 }
