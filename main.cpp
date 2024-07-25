@@ -224,7 +224,7 @@ void oxenportfetch()
 void ipToPubkey(json _resultTx)
 {
     json mnData;
-    std::ifstream inputfile("ips.csv");
+    std::ifstream inputfile("../ips.csv");
 
     if(!inputfile.is_open()){
         std::cerr << "unable to open the input file" << std::endl;
@@ -253,6 +253,56 @@ void ipToPubkey(json _resultTx)
     }
     // std::cout << mnData << std::endl;
 }
+bool checkTimestamp(int _timestamp, std::string& _date)
+{
+    if(!_timestamp){
+        return false;
+    }
+    std::time_t timestamp = _timestamp;
+    std::time_t currentTime = std::time(nullptr);
+
+    // Compute the difference
+    std::chrono::seconds diff = std::chrono::seconds(currentTime) - std::chrono::seconds(timestamp);
+
+    // Convert the difference to seconds
+    auto seconds = diff.count();
+
+    // Calculate the difference in days, hours, minutes, and seconds
+    int days = seconds / 86400; // 86400 seconds in a day
+    seconds %= 86400;
+    int hours = seconds / 3600; // 3600 seconds in an hour
+    seconds %= 3600;
+    int minutes = seconds / 60; // 60 seconds in a minute
+    seconds %= 60;
+
+    if (hours >= 1 && minutes > 15)
+    {
+        _date = std::to_string(days > 0 ? days : 0) + ":" +
+                (hours > 0 ? std::to_string(hours) : "00") + ":" +
+                (minutes > 0 ? std::to_string(minutes) : "00") + ":" +
+                (seconds > 0 ? std::to_string(seconds) : "00");
+        return false;
+    }
+
+    return true;
+}
+void uptimeproofcheck(json resultTx){
+    std::ofstream uptimeproof;
+    uptimeproof.open("uptimeproof.csv"); //     fout.open("portList.csv", std::ios::app);
+    for (auto master_node_data : resultTx["result"]["master_node_states"])
+    {
+        if (master_node_data["active"])
+        {   
+            std::string date;
+            bool time = checkTimestamp(master_node_data["last_uptime_proof"], date);
+            if (!time) {
+                uptimeproof << master_node_data["master_node_pubkey"] << "," << master_node_data["public_ip"] << "," << date << std::endl;
+            }
+        }
+    }
+    uptimeproof.close();
+}
+
 
 int main()
 {
@@ -270,9 +320,11 @@ int main()
 
     json resultTx = json::parse(res.text);
     std::cout << "-------Data Received----------" << std::endl;
+    // std::cout << resultTx["result"]["master_node_states"][0] << std::endl;
     masterNodeversionMonitor(resultTx);
     portHandler(resultTx);
     oxenportfetch();
     ipToPubkey(resultTx);
+    uptimeproofcheck(resultTx);
     return 0;
 }
