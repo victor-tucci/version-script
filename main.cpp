@@ -10,10 +10,10 @@ using namespace std::chrono;
 
 json belnetVersion = {0, 9, 7};
 json storageVersion = {2, 3, 0};
-json daemonVersion = {5, 0, 2};
+json daemonVersion = {6, 0, 0};
 
 int belnet0_9_7 = 0;
-int daemon5_0_2 = 0;
+int daemon6_0_0 = 0;
 int storage2_3_0 = 0;
 
 int daemonNewDecom = 0;
@@ -57,7 +57,7 @@ void checkDaemonVersion(json mnData, json daemonV, json daemonAV, std::ofstream 
             return;
         }
     }
-    daemon5_0_2++;
+    daemon6_0_0++;
     if (!mnData["active"])
     {
         daemonNewDecom++;
@@ -111,8 +111,8 @@ void masterNodeversionMonitor(json resultTx)
         }
     }
 
-    std::cout << "daemon(5.0.2)  : " << daemon5_0_2 << std::endl;
-    std::cout << "daemon(< 5.0.2): " << oldContributors.size() << std::endl << std::endl;
+    std::cout << "daemon(6.0.0)  : " << daemon6_0_0 << std::endl;
+    std::cout << "daemon(< 6.0.0): " << oldContributors.size() << std::endl << std::endl;
     
     std::cout << "decomissionNodes.size() : " << decomissionNodes.size() << std::endl;
     std::cout << "daemonNewDecom    : " << daemonNewDecom << std::endl;
@@ -125,7 +125,7 @@ void masterNodeversionMonitor(json resultTx)
         decomList << address["operator_address"] << "," << address["public_ip"] << "," << address["pubkey_ed25519"] << std::endl;
         ++decomListCumMap[address["operator_address"]];
     }
-    assert((oldContributors.size() + daemon5_0_2) == resultTx["result"]["master_node_states"].size());
+    assert((oldContributors.size() + daemon6_0_0) == resultTx["result"]["master_node_states"].size());
 
     int checkdecom =0;
     for (auto it = decomListCumMap.begin(); it!= decomListCumMap.end(); it++)
@@ -303,6 +303,18 @@ void uptimeproofcheck(json resultTx){
     uptimeproof.close();
 }
 
+void downtimeCreditsMonitor(json resultTx){
+    std::ofstream downtime;
+    downtime.open("downtime.csv"); //     fout.open("portList.csv", std::ios::app);
+    for (auto master_node_data : resultTx["result"]["master_node_states"])
+    {
+        if (master_node_data["operator_address"] == "bxbz3Ynqzu9WYHXBnTVL7bP1UhLCduRmH9vRH32tqcRTSksbQDjqEoweZDQWsiNKL8QHBtGzhPK3fiayLWAReAjD1rrBuinCh")
+        {
+            downtime << master_node_data["master_node_pubkey"] << "," << master_node_data["public_ip"] << "," << master_node_data["earned_downtime_blocks"] << std::endl;
+        }
+    }
+    downtime.close();
+}
 
 int main()
 {
@@ -322,6 +334,7 @@ int main()
     std::cout << "-------Data Received----------" << std::endl;
     // std::cout << resultTx["result"]["master_node_states"][0] << std::endl;
     masterNodeversionMonitor(resultTx);
+    downtimeCreditsMonitor(resultTx);
     portHandler(resultTx);
     oxenportfetch();
     ipToPubkey(resultTx);
