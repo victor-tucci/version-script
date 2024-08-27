@@ -18,6 +18,9 @@ int storage2_3_0 = 0;
 
 int daemonNewDecom = 0;
 int daemonOldDecom = 0;
+
+int AllowedMasternodes = 3;
+
 std::map<std::string, int> oldContributorList;
 std::vector<std::string> oldContributors;
 
@@ -85,9 +88,10 @@ void masterNodeversionMonitor(json resultTx)
     // This is for not the old versions list of address and their nodes
     std::ofstream fout;
     std::ofstream oldConList;
+    std::ofstream iplist;
     fout.open("olddaemns.csv"); //     fout.open("olddaemns.csv", std::ios::app);
     oldConList.open("oldContributorList.csv");
-
+    iplist.open("iplist.csv");
     // This file for the decommission list of all the master nodes
     std::ofstream decomList;
     decomList.open("decommissionList.csv");
@@ -109,6 +113,8 @@ void masterNodeversionMonitor(json resultTx)
         {
             decomissionNodes.push_back(master_node_data);
         }
+
+        iplist << master_node_data["public_ip"] << "," << master_node_data["master_node_pubkey"] << "," << master_node_data["operator_address"] << std::endl;
     }
 
     std::cout << "daemon(6.0.0)  : " << daemon6_0_0 << std::endl;
@@ -147,6 +153,7 @@ void masterNodeversionMonitor(json resultTx)
     oldConList.close();
     fout.close();
     decomList.close();
+    iplist.close();
 }
 
 //Add the storage server ports into the files
@@ -192,7 +199,7 @@ void oxenportfetch()
                                   cpr::Header{{"Content-Type", "application/json"}});
 
     json resultTx = json::parse(res.text);
-
+    std::cout << "json form resultTx : " << resultTx << std::endl;
     std::map<int, int> cumPortList;
 
     std::ofstream portList;
@@ -316,6 +323,26 @@ void downtimeCreditsMonitor(json resultTx){
     downtime.close();
 }
 
+void multiIpCheck(json resultTx){
+    std::ofstream multiip;
+    multiip.open("multiip.csv"); //     fout.open("portList.csv", std::ios::app);
+    std::map<std::string, int> publicIpList;
+    int total = 0;
+    for (auto master_node_data : resultTx["result"]["master_node_states"])
+    {
+        ++publicIpList[master_node_data["public_ip"]];
+    }
+    for (auto it = publicIpList.begin(); it!= publicIpList.end(); it++){
+        if(it->second > AllowedMasternodes){
+            multiip << it->first << "," << it->second << std::endl;
+            total += it->second - AllowedMasternodes;
+            std::cout << it->first << " : " << it->second << std::endl;
+        }
+    }
+    std::cout << "Masternodes multiple : " << total << std::endl;
+    multiip.close();
+}
+
 int main()
 {
     json transferBody = {
@@ -335,8 +362,9 @@ int main()
     // std::cout << resultTx["result"]["master_node_states"][0] << std::endl;
     masterNodeversionMonitor(resultTx);
     downtimeCreditsMonitor(resultTx);
+    multiIpCheck(resultTx);
     portHandler(resultTx);
-    oxenportfetch();
+    // oxenportfetch();
     ipToPubkey(resultTx);
     uptimeproofcheck(resultTx);
     return 0;
