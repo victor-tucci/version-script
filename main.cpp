@@ -8,13 +8,13 @@
 using json = nlohmann::json;
 using namespace std::chrono;
 
-json belnetVersion = {0, 9, 7};
-json storageVersion = {2, 3, 0};
-json daemonVersion = {6, 0, 0};
+json belnetVersion = {0, 9, 8};
+json storageVersion = {2, 4, 0};
+json daemonVersion = {7, 0, 0};
 
-int belnet0_9_7 = 0;
-int daemon6_0_0 = 0;
-int storage2_3_0 = 0;
+int belnet0_9_8 = 0;
+int daemon7_0_0 = 0;
+int storage2_4_0 = 0;
 
 int daemonNewDecom = 0;
 int daemonOldDecom = 0;
@@ -37,7 +37,7 @@ void checkBelnetVersion(json belnetV, json belnetAV)
             return;
         }
     }
-    belnet0_9_7++;
+    belnet0_9_8++;
 }
 
 void checkDaemonVersion(json mnData, json daemonV, json daemonAV, std::ofstream &_fout)
@@ -60,7 +60,7 @@ void checkDaemonVersion(json mnData, json daemonV, json daemonAV, std::ofstream 
             return;
         }
     }
-    daemon6_0_0++;
+    daemon7_0_0++;
     if (!mnData["active"])
     {
         daemonNewDecom++;
@@ -79,7 +79,7 @@ void checkStorageVersion(json storageV, json storageAV)
             return;
         }
     }
-    storage2_3_0++;
+    storage2_4_0++;
 }
 
 //checking the masternode old versions also the check the decommission lists
@@ -117,8 +117,8 @@ void masterNodeversionMonitor(json resultTx)
         iplist << master_node_data["public_ip"] << "," << master_node_data["master_node_pubkey"] << "," << master_node_data["operator_address"] << std::endl;
     }
 
-    std::cout << "daemon(6.0.0)  : " << daemon6_0_0 << std::endl;
-    std::cout << "daemon(< 6.0.0): " << oldContributors.size() << std::endl << std::endl;
+    std::cout << "daemon(7.0.0)  : " << daemon7_0_0 << std::endl;
+    std::cout << "daemon(<7.0.0): " << oldContributors.size() << std::endl << std::endl;
     
     std::cout << "decomissionNodes.size() : " << decomissionNodes.size() << std::endl;
     std::cout << "daemonNewDecom    : " << daemonNewDecom << std::endl;
@@ -131,7 +131,7 @@ void masterNodeversionMonitor(json resultTx)
         decomList << address["operator_address"] << "," << address["public_ip"] << "," << address["pubkey_ed25519"] << std::endl;
         ++decomListCumMap[address["operator_address"]];
     }
-    assert((oldContributors.size() + daemon6_0_0) == resultTx["result"]["master_node_states"].size());
+    assert((oldContributors.size() + daemon7_0_0) == resultTx["result"]["master_node_states"].size());
 
     int checkdecom =0;
     for (auto it = decomListCumMap.begin(); it!= decomListCumMap.end(); it++)
@@ -361,11 +361,11 @@ int main()
     std::cout << "-------Data Received----------" << std::endl;
     // std::cout << resultTx["result"]["master_node_states"][0] << std::endl;
     masterNodeversionMonitor(resultTx);
-    downtimeCreditsMonitor(resultTx);
-    multiIpCheck(resultTx);
-    portHandler(resultTx);
+    // downtimeCreditsMonitor(resultTx);
+    // multiIpCheck(resultTx);
+    // portHandler(resultTx);
     // oxenportfetch();
-    ipToPubkey(resultTx);
-    uptimeproofcheck(resultTx);
+    // ipToPubkey(resultTx);
+    // uptimeproofcheck(resultTx);
     return 0;
 }
