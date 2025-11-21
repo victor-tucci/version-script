@@ -126,7 +126,7 @@ void masterNodeversionMonitor(json resultTx)
 
     for (auto address : decomissionNodes)
     {
-        if (address["operator_address"] == "bxbz3Ynqzu9WYHXBnTVL7bP1UhLCduRmH9vRH32tqcRTSksbQDjqEoweZDQWsiNKL8QHBtGzhPK3fiayLWAReAjD1rrBuinCh")
+        if (address["operator_address"] == "bxbz3Ynqzu9WYHXBnTVL7bP1UhLCduRmH9vRH32tqcRTSksbQDjqEoweZDQWsiNKL8QHBtGzhPK3fiayLWAReAjD1rrBuinCh" || address["operator_address"] == "bxcWHgoP8XRZbaSwZtoH87AAGxEvSdRHnJwc9ixbfiv5ANeGkTYkRr3SbgM85JSMBLYHbucStcDxvEbbX9n6BsDT1KJKr1Z9D")
             std::cout << "Our DecomissionNodes address : " << address["operator_address"] << " ,IP : " << address["public_ip"] << " and mn-key : " << address["pubkey_ed25519"] << std::endl;
         decomList << address["operator_address"] << "," << address["public_ip"] << "," << address["pubkey_ed25519"] << std::endl;
         ++decomListCumMap[address["operator_address"]];
