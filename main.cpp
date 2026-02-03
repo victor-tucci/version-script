@@ -352,12 +352,11 @@ int main()
         {"params", {}}
     };
     std::vector<std::string> rpcUrls = {
-        "http://publicnode1.rpcnode.stream:29095/json_rpc",
-        "http://publicnode2.rpcnode.stream:29095/json_rpc",
-        "http://publicnode3.rpcnode.stream:29095/json_rpc",
-        "http://publicnode4.rpcnode.stream:29095/json_rpc",
-        "http://publicnode5.rpcnode.stream:29095/json_rpc",
-
+        // "https://publicnode1.rpcnode.stream/json_rpc",
+        // "https://publicnode2.rpcnode.stream/json_rpc",
+        // "https://publicnode3.rpcnode.stream/json_rpc",
+        "https://publicnode4.rpcnode.stream/json_rpc",
+        // "https://publicnode5.rpcnode.stream/json_rpc",
     };
 
     json resultTx;
@@ -366,8 +365,7 @@ int main()
     {
         std::cout << "Trying RPC: " << url << std::endl;
         cpr::Response res = cpr::Post(cpr::Url{url},cpr::Body{transferBody.dump()},
-            cpr::Header{{"Content-Type", "application/json"}},
-            cpr::Timeout{5000}
+            cpr::Header{{"Content-Type", "application/json"}}
         );
         
         if (res.status_code != 200 || res.text.empty()) {
