@@ -349,23 +349,56 @@ int main()
         {"jsonrpc", "2.0"},
         {"id", "0"},
         {"method", "get_master_nodes"},
-        // {"params", {{"fields",{{"master_node_pubkey",true},{"public_ip",true},{"storage_port",true},{"storage_lmq_port",true}}}}}};
-        {"params", {}}};
+        {"params", {}}
+    };
+    std::vector<std::string> rpcUrls = {
+        "http://publicnode1.rpcnode.stream:29095/json_rpc",
+        "http://publicnode2.rpcnode.stream:29095/json_rpc",
+        "http://publicnode3.rpcnode.stream:29095/json_rpc",
+        "http://publicnode4.rpcnode.stream:29095/json_rpc",
+        "http://publicnode5.rpcnode.stream:29095/json_rpc",
 
-    // std::cout << "json formot : " << transferBody.dump() << std::endl;
-    cpr::Response res = cpr::Post(cpr::Url{"http://publicnode5.rpcnode.stream:29095/json_rpc"},
-                                  cpr::Body{transferBody.dump()},
-                                  cpr::Header{{"Content-Type", "application/json"}});
+    };
 
-    json resultTx = json::parse(res.text);
-    std::cout << "-------Data Received----------" << std::endl;
-    // std::cout << resultTx["result"]["master_node_states"][0] << std::endl;
+    json resultTx;
+    bool success = false;
+    for (const auto& url : rpcUrls)
+    {
+        std::cout << "Trying RPC: " << url << std::endl;
+        cpr::Response res = cpr::Post(cpr::Url{url},cpr::Body{transferBody.dump()},
+            cpr::Header{{"Content-Type", "application/json"}},
+            cpr::Timeout{5000}
+        );
+        
+        if (res.status_code != 200 || res.text.empty()) {
+            std::cerr << "HTTP failed from: " << url << std::endl;
+            continue;
+        }
+
+        try {
+            resultTx = json::parse(res.text);
+        } catch (const json::parse_error& e) {
+            std::cerr << "Invalid JSON from: " << url << std::endl;
+            continue;
+        }
+        std::cout << "Connected successfully to: " << url << std::endl;
+        success = true;
+        break;
+    }
+
+    if (!success) {
+        std::cerr << "All RPC endpoints failed. Exiting safely." << std::endl;
+        return true;
+    }
+
+    std::cout << "------- Data Received ----------" << std::endl;
     masterNodeversionMonitor(resultTx);
-    // downtimeCreditsMonitor(resultTx);
-    // multiIpCheck(resultTx);
+
     // portHandler(resultTx);
     // oxenportfetch();
     // ipToPubkey(resultTx);
     // uptimeproofcheck(resultTx);
+    // downtimeCreditsMonitor(resultTx);
+    // multiIpCheck(resultTx);
     return 0;
 }
