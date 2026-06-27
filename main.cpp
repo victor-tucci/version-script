@@ -10,10 +10,10 @@ using namespace std::chrono;
 
 json belnetVersion = {0, 9, 8};
 json storageVersion = {2, 4, 0};
-json daemonVersion = {7, 0, 0};
+json daemonVersion = {7, 0, 2};
 
 int belnet0_9_8 = 0;
-int daemon7_0_0 = 0;
+int daemon7_0_2 = 0;
 int storage2_4_0 = 0;
 
 int daemonNewDecom = 0;
@@ -60,7 +60,7 @@ void checkDaemonVersion(json mnData, json daemonV, json daemonAV, std::ofstream 
             return;
         }
     }
-    daemon7_0_0++;
+    daemon7_0_2++;
     if (!mnData["active"])
     {
         daemonNewDecom++;
@@ -117,8 +117,8 @@ void masterNodeversionMonitor(json resultTx)
         iplist << master_node_data["public_ip"] << "," << master_node_data["master_node_pubkey"] << "," << master_node_data["operator_address"] << std::endl;
     }
 
-    std::cout << "daemon(7.0.0)  : " << daemon7_0_0 << std::endl;
-    std::cout << "daemon(<7.0.0): " << oldContributors.size() << std::endl << std::endl;
+    std::cout << "daemon(7.0.2)  : " << daemon7_0_2 << std::endl;
+    std::cout << "daemon(<7.0.2) : " << oldContributors.size() << std::endl << std::endl;
     
     std::cout << "decomissionNodes.size() : " << decomissionNodes.size() << std::endl;
     std::cout << "daemonNewDecom    : " << daemonNewDecom << std::endl;
@@ -131,7 +131,7 @@ void masterNodeversionMonitor(json resultTx)
         decomList << address["operator_address"] << "," << address["public_ip"] << "," << address["pubkey_ed25519"] << std::endl;
         ++decomListCumMap[address["operator_address"]];
     }
-    assert((oldContributors.size() + daemon7_0_0) == resultTx["result"]["master_node_states"].size());
+    assert((oldContributors.size() + daemon7_0_2) == resultTx["result"]["master_node_states"].size());
 
     int checkdecom =0;
     for (auto it = decomListCumMap.begin(); it!= decomListCumMap.end(); it++)
@@ -296,6 +296,7 @@ bool checkTimestamp(int _timestamp, std::string& _date)
 void uptimeproofcheck(json resultTx){
     std::ofstream uptimeproof;
     uptimeproof.open("uptimeproof.csv"); //     fout.open("portList.csv", std::ios::app);
+    int i = 0;
     for (auto master_node_data : resultTx["result"]["master_node_states"])
     {
         if (master_node_data["active"])
@@ -303,10 +304,12 @@ void uptimeproofcheck(json resultTx){
             std::string date;
             bool time = checkTimestamp(master_node_data["last_uptime_proof"], date);
             if (!time) {
+                i++;
                 uptimeproof << master_node_data["master_node_pubkey"] << "," << master_node_data["public_ip"] << "," << date << std::endl;
             }
         }
     }
+    std::cout << "Total uptime proof missed : " << i << std::endl;
     uptimeproof.close();
 }
 
@@ -355,8 +358,8 @@ int main()
         // "https://publicnode1.rpcnode.stream/json_rpc",
         // "https://publicnode2.rpcnode.stream/json_rpc",
         // "https://publicnode3.rpcnode.stream/json_rpc",
-        "https://publicnode4.rpcnode.stream/json_rpc",
-        // "https://publicnode5.rpcnode.stream/json_rpc",
+        // "http://154.26.139.103:29092/json_rpc",
+        "http://13.234.123.185:19091/json_rpc",
     };
 
     json resultTx;
@@ -395,7 +398,7 @@ int main()
     // portHandler(resultTx);
     // oxenportfetch();
     // ipToPubkey(resultTx);
-    // uptimeproofcheck(resultTx);
+    uptimeproofcheck(resultTx);
     // downtimeCreditsMonitor(resultTx);
     // multiIpCheck(resultTx);
     return 0;
